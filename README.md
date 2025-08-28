@@ -1,4 +1,4 @@
-# go-migrate
+# go-migrate-test
 
 `go-migrate` is a lightweight and straightforward migration tool written in Go.  
 It helps you manage and apply SQL migrations in sequence, ensuring consistent database versioning.
