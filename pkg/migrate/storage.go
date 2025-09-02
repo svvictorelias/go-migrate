@@ -3,6 +3,7 @@ package migrate
 import (
 	"context"
 	"database/sql"
+	"fmt"
 )
 
 // queryExecutor is implemented by *sql.DB e *sql.Tx
@@ -11,17 +12,35 @@ type queryExecutor interface {
 }
 
 // InitStorage create a table to store applied migrations
-func InitStorage(db *sql.DB) error {
-	query := `
-	CREATE TABLE IF NOT EXISTS migrations (
-		id SERIAL PRIMARY KEY,
-		name TEXT NOT NULL UNIQUE,
-		checksum TEXT NOT NULL,
-		success BOOLEAN NOT NULL DEFAULT FALSE,
-		error TEXT,
-		applied_at TIMESTAMP NOT NULL DEFAULT NOW()
-	);
-	`
+func InitStorage(db *sql.DB, driver string) error {
+	var query string
+
+	if driver == "mysql" {
+		query = `
+		CREATE TABLE IF NOT EXISTS migrations (
+			id INT AUTO_INCREMENT PRIMARY KEY,
+			name VARCHAR(255) NOT NULL UNIQUE,
+			checksum VARCHAR(255) NOT NULL,
+			success BOOLEAN NOT NULL DEFAULT FALSE,
+			error TEXT,
+			applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+		`
+	} else if driver == "postgres" {
+		query = `
+		CREATE TABLE IF NOT EXISTS migrations (
+			id SERIAL PRIMARY KEY,
+			name TEXT NOT NULL UNIQUE,
+			checksum TEXT NOT NULL,
+			success BOOLEAN NOT NULL DEFAULT FALSE,
+			error TEXT,
+			applied_at TIMESTAMP NOT NULL DEFAULT NOW()
+		);
+		`
+	} else {
+		return fmt.Errorf("unsupported driver: %s", driver)
+	}
+
 	_, err := db.Exec(query)
 	return err
 }
