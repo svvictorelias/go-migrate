@@ -29,5 +29,5 @@ func Run(db *sql.DB, driver string, path string, noApply bool) error {
 		return fmt.Errorf("error to load applied migrations: %w", err)
 	}
 
-	return Execute(db, local, applied, noApply)
+	return Execute(db, driver, local, applied, noApply)
 }
