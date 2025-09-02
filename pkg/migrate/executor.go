@@ -61,7 +61,7 @@ func applyMigration(db *sql.DB, driver string, m Migration, isReapply bool, noAp
 	if noApply {
 		// Delete unsuccessful migration
 		if isReapply {
-			if err := deleteMigration(tx, m.Name); err != nil {
+			if err := deleteMigration(tx, driver, m.Name); err != nil {
 				tx.Rollback()
 				return err
 			}
@@ -89,7 +89,7 @@ func applyMigration(db *sql.DB, driver string, m Migration, isReapply bool, noAp
 
 	// Delete unsuccessful migration
 	if isReapply {
-		if err := deleteMigration(tx, m.Name); err != nil {
+		if err := deleteMigration(tx, driver, m.Name); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -115,7 +115,17 @@ func applyMigration(db *sql.DB, driver string, m Migration, isReapply bool, noAp
 }
 
 // deleteMigration delete the migration record by name
-func deleteMigration(tx *sql.Tx, name string) error {
-	_, err := tx.Exec(`DELETE FROM migrations WHERE name = $1`, name)
-	return err
+func deleteMigration(tx *sql.Tx, driver, name string) error {
+
+	if driver == "postgres" {
+		query := `DELETE FROM migrations WHERE name = $1`
+		_, err := tx.Exec(query, name)
+		return err
+	} else if driver == "mysql" {
+		query := `DELETE FROM migrations WHERE name = ?`
+		_, err := tx.Exec(query, name)
+		return err
+	}
+
+	return fmt.Errorf("unsupported driver: %s", driver)
 }
