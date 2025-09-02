@@ -14,8 +14,8 @@ import (
 //   - applied: list of migrations already applied to the database.
 //   - noApply: if true, skips executing the SQL statements and only
 //     logs or marks them as applied (dry-run mode or db with data).
-func Run(db *sql.DB, path string, noApply bool) error {
-	if err := InitStorage(db); err != nil {
+func Run(db *sql.DB, driver string, path string, noApply bool) error {
+	if err := InitStorage(db, driver); err != nil {
 		return fmt.Errorf("error to inicializer storage: %w", err)
 	}
 
