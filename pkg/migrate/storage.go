@@ -65,13 +65,27 @@ func LoadApplied(db *sql.DB) ([]AppliedMigration, error) {
 }
 
 // SaveMigration insert or update a migration
-func SaveMigration(exec queryExecutor, name, checksum string, success bool, errorMessage *string) error {
-	query := `
-	INSERT INTO migrations (name, checksum, success, error)
-	VALUES ($1, $2, $3, $4)
-	ON CONFLICT (name) DO UPDATE
-	SET success = EXCLUDED.success;
-	`
+func SaveMigration(exec queryExecutor, driver, name, checksum string, success bool, errorMessage *string) error {
+	var query string
+
+	if driver == "postgres" {
+		query = `
+		INSERT INTO migrations (name, checksum, success, error)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (name) DO UPDATE
+		SET success = EXCLUDED.success;
+		`
+	} else if driver == "mysql" {
+		query = `
+		INSERT INTO migrations (name, checksum, success, error)
+		VALUES (?, ?, ?, ?)
+		ON DUPLICATE KEY UPDATE
+		success = VALUES(success);
+		`
+	} else {
+		return fmt.Errorf("unsupported driver: %s", driver)
+	}
+
 	_, err := exec.ExecContext(context.Background(), query, name, checksum, success, errorMessage)
 	return err
 }

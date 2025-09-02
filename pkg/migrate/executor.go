@@ -8,7 +8,7 @@ import (
 )
 
 // Execute applies all local migrations in the correct order
-func Execute(db *sql.DB, local []Migration, applied []AppliedMigration, noApply bool) error {
+func Execute(db *sql.DB, driver string, local []Migration, applied []AppliedMigration, noApply bool) error {
 	sort.Slice(local, func(i, j int) bool {
 		return local[i].Name < local[j].Name
 	})
@@ -27,7 +27,7 @@ func Execute(db *sql.DB, local []Migration, applied []AppliedMigration, noApply 
 			}
 			if !a.Success {
 				log.Printf("Migration %s failed, reapplying...", m.Name)
-				if err := applyMigration(db, m, true, noApply); err != nil {
+				if err := applyMigration(db, driver, m, true, noApply); err != nil {
 					return err
 				}
 			} else {
@@ -37,7 +37,7 @@ func Execute(db *sql.DB, local []Migration, applied []AppliedMigration, noApply 
 		} else {
 			// Migration never applied -> apply
 			log.Printf("Aplying migration: %s", m.Name)
-			if err := applyMigration(db, m, false, noApply); err != nil {
+			if err := applyMigration(db, driver, m, false, noApply); err != nil {
 				return err
 			}
 		}
@@ -52,7 +52,7 @@ func Execute(db *sql.DB, local []Migration, applied []AppliedMigration, noApply 
 
 // applyMigration
 // isReapply show if it's a reapply
-func applyMigration(db *sql.DB, m Migration, isReapply bool, noApply bool) error {
+func applyMigration(db *sql.DB, driver string, m Migration, isReapply bool, noApply bool) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return err
@@ -67,7 +67,7 @@ func applyMigration(db *sql.DB, m Migration, isReapply bool, noApply bool) error
 			}
 		}
 
-		if err := SaveMigration(tx, m.Name, m.Checksum, true, nil); err != nil {
+		if err := SaveMigration(tx, driver, m.Name, m.Checksum, true, nil); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -83,7 +83,7 @@ func applyMigration(db *sql.DB, m Migration, isReapply bool, noApply bool) error
 	if _, err := tx.Exec(string(m.Content)); err != nil {
 		tx.Rollback()
 		message := err.Error()
-		SaveMigration(db, m.Name, m.Checksum, false, &message)
+		SaveMigration(db, driver, m.Name, m.Checksum, false, &message)
 		return fmt.Errorf("error to execute migration %s: %w", m.Name, err)
 	}
 
@@ -96,7 +96,7 @@ func applyMigration(db *sql.DB, m Migration, isReapply bool, noApply bool) error
 	}
 
 	// Save migration success=true
-	if err := SaveMigration(tx, m.Name, m.Checksum, true, nil); err != nil {
+	if err := SaveMigration(tx, driver, m.Name, m.Checksum, true, nil); err != nil {
 		tx.Rollback()
 		return err
 	}
