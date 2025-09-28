@@ -5,12 +5,21 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 )
 
 // Execute applies all local migrations in the correct order
 func Execute(db *sql.DB, driver string, local []Migration, applied []AppliedMigration, noApply bool) error {
 	sort.Slice(local, func(i, j int) bool {
-		return local[i].Name < local[j].Name
+		pi := strings.SplitN(local[i].Name, "_", 2)[0]
+		pj := strings.SplitN(local[j].Name, "_", 2)[0]
+
+		// Convert to int
+		var ni, nj int64
+		fmt.Sscanf(pi, "%d", &ni)
+		fmt.Sscanf(pj, "%d", &nj)
+
+		return ni < nj
 	})
 
 	// Create quick map of applied by name
