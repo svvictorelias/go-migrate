@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -24,7 +25,18 @@ func LoadLocal(path string) ([]Migration, error) {
 		return nil, fmt.Errorf("no migrations found in %s", path)
 	}
 
-	sort.Strings(files)
+	sort.Slice(files, func(i, j int) bool {
+		fi := filepath.Base(files[i])
+		fj := filepath.Base(files[j])
+
+		pi := strings.SplitN(fi, "_", 2)[0]
+		pj := strings.SplitN(fj, "_", 2)[0]
+
+		ni, _ := strconv.ParseInt(pi, 10, 64)
+		nj, _ := strconv.ParseInt(pj, 10, 64)
+
+		return ni < nj
+	})
 
 	var migrations []Migration
 	for _, f := range files {
